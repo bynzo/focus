@@ -10,11 +10,17 @@
   <meta name="theme-color"            content="#4CAF50"/>
   <meta name="mobile-web-app-capable" content="yes"/>
 
-  <link rel="manifest" href="manifest.json"/>
-  <link rel="icon"             href="icons/icon-192x192.png" sizes="192x192" type="image/png"/>
-  <link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
+  <!-- PWA Manifest (bust cache when you bump ?v=) -->
+  <link rel="manifest" href="manifest.json?cache-bust=v2"/>
+
+  <!-- Icons -->
+  <link rel="icon"             href="icons/icon-192x192.png?cache-bust=v2" sizes="192x192" type="image/png"/>
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png?cache-bust=v2"/>
+
+  <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css"/>
 
+  <!-- Service Worker registration with skipWaiting & auto-reload -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -25,21 +31,21 @@
               const newSW = reg.installing;
               newSW.addEventListener('statechange', () => {
                 if (newSW.state === 'installed') {
-                  // Tell it to activate right away
+                  // Activate new SW immediately
                   newSW.postMessage({ type: 'SKIP_WAITING' });
                 }
               });
             });
-          });
-    
-        // Reload when the new SW takes control
+          })
+          .catch(err => console.error('SW registration failed:', err));
+
+        // Reload page when the new SW takes control
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           window.location.reload();
         });
       });
     }
-    </script>
-    
+  </script>
 </head>
 <body>
   <header class="nav">
@@ -81,15 +87,7 @@
     </div>
   </div>
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('service-worker.js')
-          .catch(err => console.error('SW failed:', err));
-      });
-    }
-  </script>
+  <!-- App Logic -->
   <script src="app.js" defer></script>
 </body>
 </html>
