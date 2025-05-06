@@ -1,19 +1,19 @@
 {
     "name": "Focus Tree",
     "short_name": "Focus",
-    "start_url": "/focus/index.html",
-    "scope": "/focus/",
+    "start_url": "/index.html?ver=1.1.0",
+    "scope": "/",
     "display": "standalone",
     "background_color": "#f0f4f8",
     "theme_color": "#4CAF50",
     "icons": [
       {
-        "src": "/focus/icons/icon-192x192.png",
+        "src": "icons/icon-192x192.png?ver=1.1.0",
         "sizes": "192x192",
         "type": "image/png"
       },
       {
-        "src": "/focus/icons/icon-512x512.png",
+        "src": "icons/icon-512x512.png?ver=1.1.0",
         "sizes": "512x512",
         "type": "image/png"
       }
