@@ -14,6 +14,32 @@
   <link rel="icon"             href="icons/icon-192x192.png" sizes="192x192" type="image/png"/>
   <link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
   <link rel="stylesheet" href="styles.css"/>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => {
+            // When a new SW is found...
+            reg.addEventListener('updatefound', () => {
+              const newSW = reg.installing;
+              newSW.addEventListener('statechange', () => {
+                if (newSW.state === 'installed') {
+                  // Tell it to activate right away
+                  newSW.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            });
+          });
+    
+        // Reload when the new SW takes control
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          window.location.reload();
+        });
+      });
+    }
+    </script>
+    
 </head>
 <body>
   <header class="nav">
