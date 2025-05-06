@@ -1,5 +1,6 @@
 :root {
   --primary-color: #4CAF50;
+  --running-color: #e74c3c;    /* bright red */
   --background: #f0f4f8;
   --text-color: #333;
   --font-family: 'Segoe UI', sans-serif;
@@ -20,12 +21,12 @@ body {
   height: 100vh;
 }
 
-/* Change ring and text color when timer is running */
+/* --- Timer-running red accent --- */
 body.running .progress-ring__circle {
-  stroke: #FF5722;
+  stroke: var(--running-color);
 }
 body.running .timer-display {
-  color: #FF5722;
+  color: var(--running-color);
 }
 
 .nav {
@@ -33,7 +34,6 @@ body.running .timer-display {
   background: #fff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-
 .nav-link {
   flex: 1;
   text-align: center;
@@ -54,8 +54,7 @@ main {
   padding: 2em;
 }
 
-.timer-page,
-.stats-page {
+.timer-page {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -65,10 +64,9 @@ main {
   font-size: 2rem;
   animation: pulse 2s infinite;
 }
-
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.2); }
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.2); }
 }
 
 .timer-container {
@@ -82,6 +80,15 @@ main {
   transform-origin: 50% 50%;
 }
 
+#timer-knob {
+  cursor: grab;
+  transition: fill 0.2s;
+}
+#timer-knob:active {
+  cursor: grabbing;
+  fill: #c0392b;
+}
+
 .timer-display {
   position: absolute;
   top: 50%;
@@ -90,28 +97,17 @@ main {
   font-size: 2rem;
 }
 
-/* Responsive and interactive controls */
+/* ring/knob interactivity */
+#timer-ring {
+  touch-action: none;
+}
+
 .controls {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
   gap: 0.5em;
-  align-items: center;
-  margin-top: 1em;
+  justify-content: center;
 }
-
-.controls input {
-  width: 80px;
-  max-width: 30%;
-  padding: 0.5em;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  text-align: center;
-}
-
 .controls button {
-  flex: 1 1 auto;
-  min-width: 80px;
   padding: 0.5em 1em;
   border: none;
   background: var(--primary-color);
@@ -120,29 +116,30 @@ main {
   cursor: pointer;
   transition: background 0.3s;
 }
-
 .controls button:hover {
   background: #45a049;
 }
-
 .controls button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.tree-visual {
-  font-size: 5rem;
-  transition: transform 0.3s;
+/* --- Stats-page “forest” layout --- */
+.tree-container {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;       /* ensure horizontal flow */
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
 }
 
-.stats {
-  margin-top: 2em;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
-  font-size: 1.2rem;
+.tree-icon {
+  font-size: 2.5rem;
 }
-/* overlay container */
+
+/* congrats overlay */
 #congrats-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -155,14 +152,10 @@ main {
   opacity: 0;
   transition: opacity 0.3s ease;
 }
-
-/* when active */
 #congrats-overlay.show {
   visibility: visible;
   opacity: 1;
 }
-
-/* the pop-in card */
 .congrats-content {
   background: #fff;
   padding: 2em;
@@ -172,15 +165,11 @@ main {
   animation: popIn 0.5s ease-out forwards;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
-
-/* simple confetti emoji burst */
 .confetti {
   font-size: 2rem;
   animation: burst 0.8s ease-out forwards;
   margin-bottom: 0.5em;
 }
-
-/* keyframes */
 @keyframes popIn {
   to { transform: scale(1); }
 }
@@ -188,59 +177,4 @@ main {
   0%   { transform: translateY(0) scale(0.5); opacity: 0; }
   50%  { transform: translateY(-30px) scale(1.2); opacity: 1; }
   100% { transform: translateY(-60px) scale(1); opacity: 0; }
-}
-/* time-selector widget */
-.time-selector {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  margin-bottom: 0.5em;
-}
-
-.time-selector button {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: var(--primary-color);
-  color: #fff;
-  font-size: 1.5rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.time-selector button:hover {
-  background: #45a049;
-}
-
-#timer-value {
-  font-size: 1.25rem;
-  width: 2ch;
-  text-align: center;
-  font-weight: bold;
-}
-
-.min-label {
-  font-size: 0.9rem;
-  color: var(--text-color);
-}
-
-/* container for multiple trees */
-.tree-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-  max-height: 200px;     /* keep it from overflowing the viewport */
-  overflow-y: auto;      /* scroll if too many */
-  margin: 1rem 0;
-}
-
-/* individual tree icon */
-.tree-icon {
-  font-size: 2.5rem;
 }

@@ -1,23 +1,27 @@
 const SESSIONS_KEY = 'focus_sessions';
 
+// Timer + circle-picker logic
 if (document.getElementById('start-btn')) {
-  const circle        = document.querySelector('.progress-ring__circle');
+  const ringSVG       = document.getElementById('timer-ring');
+  const circle        = ringSVG.querySelector('.progress-ring__circle');
+  const knob          = ringSVG.querySelector('#timer-knob');
   const radius        = circle.r.baseVal.value;
   const circumference = 2 * Math.PI * radius;
+  const centerX       = 100;
+  const centerY       = 100;
   circle.style.strokeDasharray  = `${circumference} ${circumference}`;
   circle.style.strokeDashoffset = circumference;
 
   let duration  = 25 * 60;
   let remaining = duration;
   let interval  = null;
+  let selecting = false;
 
-  const startBtn    = document.getElementById('start-btn');
-  const pauseBtn    = document.getElementById('pause-btn');
-  const resetBtn    = document.getElementById('reset-btn');
-  const overlay     = document.getElementById('congrats-overlay');
-  const decreaseBtn = document.getElementById('decrease-btn');
-  const increaseBtn = document.getElementById('increase-btn');
-  const timerValue  = document.getElementById('timer-value');
+  const display  = document.getElementById('timer-display');
+  const startBtn = document.getElementById('start-btn');
+  const pauseBtn = document.getElementById('pause-btn');
+  const resetBtn = document.getElementById('reset-btn');
+  const overlay  = document.getElementById('congrats-overlay');
 
   function setProgress(time) {
     const offset = circumference - (time / duration) * circumference;
@@ -27,45 +31,74 @@ if (document.getElementById('start-btn')) {
   function updateDisplay(sec) {
     const m = Math.floor(sec / 60).toString().padStart(2, '0');
     const s = (sec % 60).toString().padStart(2, '0');
-    document.getElementById('timer-display').textContent = `${m}:${s}`;
+    display.textContent = `${m}:${s}`;
   }
 
-  timerValue.textContent = duration / 60;
+  function updateKnob(mins) {
+    // angle in degrees (0 at top, clockwise)
+    const deg = (mins / 60) * 360 - 90;
+    const rad = deg * Math.PI / 180;
+    const x   = centerX + radius * Math.cos(rad);
+    const y   = centerY + radius * Math.sin(rad);
+    knob.setAttribute('cx', x);
+    knob.setAttribute('cy', y);
+  }
 
-  decreaseBtn.addEventListener('click', () => {
-    if (!interval && duration > 60) {
-      duration -= 60;
-      remaining = duration;
-      timerValue.textContent = duration / 60;
-      updateDisplay(remaining);
-      setProgress(remaining);
-    }
+  function angleToMinutes(deg) {
+    const mins = Math.round(((deg + 90) % 360) / 360 * 60);
+    return Math.max(1, Math.min(60, mins));
+  }
+
+  function handlePointer(e) {
+    if (interval) return;
+    const rect = ringSVG.getBoundingClientRect();
+    const cx   = rect.left + rect.width / 2;
+    const cy   = rect.top  + rect.height / 2;
+    const dx   = e.clientX - cx;
+    const dy   = e.clientY - cy;
+    let deg    = Math.atan2(dy, dx) * 180 / Math.PI;
+    // convert to 0=top, clockwise
+    deg = (deg + 90 + 360) % 360;
+    const mins = angleToMinutes(deg);
+    duration  = mins * 60;
+    remaining = duration;
+    updateDisplay(remaining);
+    setProgress(remaining);
+    updateKnob(mins);
+  }
+
+  // initialize
+  updateDisplay(remaining);
+  setProgress(remaining);
+  updateKnob(duration / 60);
+
+  ringSVG.addEventListener('pointerdown', e => {
+    selecting = true;
+    handlePointer(e);
   });
-
-  increaseBtn.addEventListener('click', () => {
-    if (!interval) {
-      duration += 60;
-      remaining = duration;
-      timerValue.textContent = duration / 60;
-      updateDisplay(remaining);
-      setProgress(remaining);
-    }
+  window.addEventListener('pointermove', e => {
+    if (selecting) handlePointer(e);
+  });
+  window.addEventListener('pointerup', () => {
+    selecting = false;
   });
 
   startBtn.addEventListener('click', () => {
     if (interval) return;
     document.body.classList.add('running');
-    startBtn.disabled = true;
+    startBtn.disabled    = true;
+    ringSVG.style.pointerEvents = 'none';
 
     interval = setInterval(() => {
       remaining--;
-
       if (remaining <= 0) {
         clearInterval(interval);
         interval = null;
         document.body.classList.remove('running');
-        startBtn.disabled = false;
+        startBtn.disabled    = false;
+        ringSVG.style.pointerEvents = 'auto';
 
+        // record session
         const sessions = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || [];
         sessions.push({ timestamp: Date.now(), duration });
         localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
@@ -75,7 +108,6 @@ if (document.getElementById('start-btn')) {
 
         remaining = duration;
       }
-
       updateDisplay(remaining);
       setProgress(remaining);
     }, 1000);
@@ -85,23 +117,23 @@ if (document.getElementById('start-btn')) {
     clearInterval(interval);
     interval = null;
     document.body.classList.remove('running');
-    startBtn.disabled = false;
+    startBtn.disabled    = false;
+    ringSVG.style.pointerEvents = 'auto';
   });
 
   resetBtn.addEventListener('click', () => {
     clearInterval(interval);
     interval = null;
     document.body.classList.remove('running');
-    startBtn.disabled = false;
+    startBtn.disabled    = false;
+    ringSVG.style.pointerEvents = 'auto';
     remaining = duration;
     updateDisplay(remaining);
     setProgress(remaining);
   });
-
-  updateDisplay(remaining);
-  setProgress(remaining);
 }
 
+// Stats page logic (if present)
 if (document.getElementById('today-total')) {
   const sessions     = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || [];
   const now          = new Date();
@@ -111,27 +143,25 @@ if (document.getElementById('today-total')) {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   let todaySec = 0, weekSec = 0, monthSec = 0;
-
   sessions.forEach(s => {
     const t = new Date(s.timestamp);
-    if (t >= startOfDay)   todaySec += s.duration;
-    if (t >= startOfWeek)  weekSec  += s.duration;
-    if (t >= startOfMonth) monthSec += s.duration;
+    if (t >= startOfDay)   todaySec  += s.duration;
+    if (t >= startOfWeek)  weekSec   += s.duration;
+    if (t >= startOfMonth) monthSec  += s.duration;
   });
 
-  const toMin = sec => Math.round(sec / 60);
-  document.getElementById('today-total').textContent = toMin(todaySec);
-  document.getElementById('week-total').textContent  = toMin(weekSec);
-  document.getElementById('month-total').textContent = toMin(monthSec);
+  document.getElementById('today-total').textContent = Math.round(todaySec / 60);
+  document.getElementById('week-total').textContent  = Math.round(weekSec  / 60);
+  document.getElementById('month-total').textContent = Math.round(monthSec / 60);
 
   const container      = document.getElementById('tree-container');
   container.innerHTML  = '';
-  const weeklySessions = sessions.filter(s => new Date(s.timestamp) >= startOfWeek);
-
-  weeklySessions.forEach(() => {
-    const div = document.createElement('div');
-    div.className   = 'tree-icon';
-    div.textContent = '🌳';
-    container.appendChild(div);
-  });
+  sessions
+    .filter(s => new Date(s.timestamp) >= startOfWeek)
+    .forEach(() => {
+      const div = document.createElement('div');
+      div.className   = 'tree-icon';
+      div.textContent = '🌳';
+      container.appendChild(div);
+    });
 }
