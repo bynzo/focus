@@ -10,39 +10,16 @@
   <meta name="theme-color"            content="#4CAF50"/>
   <meta name="mobile-web-app-capable" content="yes"/>
 
-  <!-- PWA Manifest (bust cache when you bump ?v=) -->
-  <link rel="manifest" href="manifest.json?cache-bust=v2"/>
-
-  <!-- Icons -->
-  <link rel="icon"             href="icons/icon-192x192.png?cache-bust=v2" sizes="192x192" type="image/png"/>
-  <link rel="apple-touch-icon" href="icons/icon-192x192.png?cache-bust=v2"/>
-
-  <!-- Stylesheet -->
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon"             href="icons/icon-192x192.png" sizes="192x192" type="image/png"/>
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
   <link rel="stylesheet" href="styles.css"/>
 
-  <!-- Service Worker registration with skipWaiting & auto-reload -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js')
-          .then(reg => {
-            // When a new SW is found...
-            reg.addEventListener('updatefound', () => {
-              const newSW = reg.installing;
-              newSW.addEventListener('statechange', () => {
-                if (newSW.state === 'installed') {
-                  // Activate new SW immediately
-                  newSW.postMessage({ type: 'SKIP_WAITING' });
-                }
-              });
-            });
-          })
-          .catch(err => console.error('SW registration failed:', err));
-
-        // Reload page when the new SW takes control
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          window.location.reload();
-        });
+          .catch(err => console.error('SW failed:', err));
       });
     }
   </script>
@@ -57,22 +34,30 @@
     <div class="focus-symbol">🍃</div>
 
     <div class="timer-container">
-      <svg id="timer-ring" class="progress-ring" width="200" height="200">
+      <svg class="progress-ring" width="200" height="200">
         <circle
           class="progress-ring__circle"
           stroke="var(--primary-color)"
           stroke-width="8"
           fill="transparent"
-          r="90"
-          cx="100" cy="100"
+          r="90" cx="100" cy="100"
         />
-        <!-- draggable knob -->
-        <circle id="timer-knob" r="10" fill="var(--primary-color)" cx="100" cy="10" />
       </svg>
       <div id="timer-display" class="timer-display">25:00</div>
     </div>
 
     <div class="controls">
+      <div class="slider-container">
+        <input
+          type="range"
+          id="time-slider"
+          min="1"
+          max="60"
+          value="25"
+          aria-label="Set focus minutes"
+        />
+        <span id="timer-value">25</span><span class="min-label">min</span>
+      </div>
       <button id="start-btn">Start</button>
       <button id="pause-btn">Pause</button>
       <button id="reset-btn">Reset</button>
@@ -87,7 +72,6 @@
     </div>
   </div>
 
-  <!-- App Logic -->
   <script src="app.js" defer></script>
 </body>
 </html>

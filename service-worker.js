@@ -1,25 +1,26 @@
-const CACHE_NAME = 'focus-tree-v2';
-const APP_SHELL = [
-  '/index.html?cache-bust=v2',
-  '/stats.html?cache-bust=v2',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json?cache-bust=v2',
-  '/icons/icon-192x192.png?cache-bust=v2',
-  '/icons/icon-512x512.png?cache-bust=v2'
+const CACHE_NAME = 'focus-tree-v1';
+const ASSETS = [
+  './',
+  './index.html',
+  './stats.html',
+  './styles.css',
+  './app.js',
+  './manifest.json',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png'
 ];
 
-// Install → precache
 self.addEventListener('install', evt => {
+  // Activate worker immediately
   self.skipWaiting();
+  // Precache app shell
   evt.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
 });
 
-// Activate → clean old caches
 self.addEventListener('activate', evt => {
+  // Remove old caches
   evt.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
@@ -31,32 +32,23 @@ self.addEventListener('activate', evt => {
   );
 });
 
-// Fetch → network-first for navigation, cache-first for everything else
 self.addEventListener('fetch', evt => {
+  // Navigation (HTML) → network-first
   if (evt.request.mode === 'navigate') {
-    // Try network first
     evt.respondWith(
       fetch(evt.request)
         .then(res => {
+          // Update cache
           const copy = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(evt.request, copy));
+          caches.open(CACHE_NAME).then(c => c.put(evt.request, copy));
           return res;
         })
-        .catch(() => caches.match('/index.html?cache-bust=v2'))
+        .catch(() => caches.match('./index.html'))
     );
   } else {
-    // Cache-first for static assets
+    // Other assets → cache-first
     evt.respondWith(
-      caches.match(evt.request).then(cached =>
-        cached || fetch(evt.request)
-      )
+      caches.match(evt.request).then(cached => cached || fetch(evt.request))
     );
-  }
-});
-
-// Listen for skipWaiting messages from page
-self.addEventListener('message', evt => {
-  if (evt.data && evt.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
   }
 });
