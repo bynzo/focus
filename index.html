@@ -72,6 +72,37 @@
       </select><span class="min-label">min</span>
       <button id="break-btn">Start Break</button>
     </div>
+
+    <!-- To-Do List Section -->
+    <aside class="todo-section">
+      <h3>To-Do List</h3>
+      <form id="todo-form">
+        <input
+          type="text"
+          id="todo-input"
+          placeholder="New task description"
+          required
+        />
+        <select id="importance-select" required>
+          <option value="" disabled selected>Importance</option>
+          <option value="high">High</option>
+          <option value="low">Low</option>
+        </select>
+        <select id="urgency-select" required>
+          <option value="" disabled selected>Urgency</option>
+          <option value="high">High</option>
+          <option value="low">Low</option>
+        </select>
+        <input type="date" id="due-date" required/>
+        <button type="submit">Add Task</button>
+      </form>
+
+      <ul id="task-list" class="task-list">
+        <!-- Tasks injected here -->
+      </ul>
+    </aside>
+    <!-- End To-Do List Section -->
+
   </main>
 
   <div id="congrats-overlay">

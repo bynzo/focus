@@ -1,47 +1,57 @@
-const CACHE_NAME = 'focus-tree-v3';
+// give it a new version so that the updated todo.js / styles.css get re-cached
+const CACHE_NAME = 'focus-tree-v4';
 const ASSETS = [
-  './',
-  './index.html',
-  './stats.html',
-  './styles.css',
-  './app.js',
-  './manifest.json',
-  './icons/icon-192x192.png',
-  './icons/icon-512x512.png'
+  '/',               // our app shell
+  '/index.html',
+  '/stats.html',
+  '/styles.css',
+  '/app.js',
+  '/manifest.json',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', evt => {
-  self.skipWaiting();
+  // pre-cache all app shell assets
   evt.waitUntil(
-    caches.open(CACHE_NAME).then(c => c.addAll(ASSETS))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', evt => {
+  // clean up old caches
   evt.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(k => k !== CACHE_NAME)
-            .map(old => caches.delete(old))
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
       )
     ).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', evt => {
+  // navigation requests: try network first, fallback to cache
   if (evt.request.mode === 'navigate') {
     evt.respondWith(
       fetch(evt.request)
         .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(evt.request, clone));
+          // update cache in background
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(evt.request, copy));
           return res;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() => caches.match('/index.html'))
     );
-  } else {
-    evt.respondWith(
-      caches.match(evt.request).then(cached => cached || fetch(evt.request))
-    );
+    return;
   }
+
+  // static asset requests: cache-first
+  evt.respondWith(
+    caches.match(evt.request)
+      .then(cached => cached || fetch(evt.request))
+  );
 });
