@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="styles.css"/>
   <title>Focus Stats</title>
 </head>
 <body>
@@ -14,21 +14,22 @@
   </header>
   <main class="stats-page">
     <h1>Your Focus Forest</h1>
-
-    <!-- multiple‐tree container -->
     <div id="tree-container" class="tree-container"></div>
-
     <div class="stats">
       <div>Today: <span id="today-total">0</span> min</div>
       <div>This Week: <span id="week-total">0</span> min</div>
       <div>This Month: <span id="month-total">0</span> min</div>
     </div>
   </main>
-  <script src="app.js" defer></script>
+
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
+      window.addEventListener('load', () =>
+        navigator.serviceWorker.register('service-worker.js')
+          .catch(console.error)
+      );
     }
   </script>
+  <script src="app.js" defer></script>
 </body>
 </html>

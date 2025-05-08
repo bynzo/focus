@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
@@ -17,10 +17,10 @@
 
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      window.addEventListener('load', () =>
         navigator.serviceWorker.register('service-worker.js')
-          .catch(err => console.error('SW failed:', err));
-      });
+          .catch(err => console.error('SW failed:', err))
+      );
     }
   </script>
 </head>
@@ -62,13 +62,23 @@
       <button id="pause-btn">Pause</button>
       <button id="reset-btn">Reset</button>
     </div>
+
+    <div class="break-controls">
+      <label for="break-selector">Break:</label>
+      <select id="break-selector">
+        <option value="5">5</option>
+        <option value="15">15</option>
+        <option value="30">30</option>
+      </select><span class="min-label">min</span>
+      <button id="break-btn">Start Break</button>
+    </div>
   </main>
 
   <div id="congrats-overlay">
     <div class="congrats-content">
       <div class="confetti">🎉🎉🎉</div>
       <h2>Congrats!</h2>
-      <p>You’ve earned a break 🌱</p>
+      <p>You've earned a break 🌱</p>
     </div>
   </div>
 

@@ -1,130 +1,155 @@
-const SESSIONS_KEY = 'focus_sessions';
+const FOCUS_KEY = 'focus_sessions';
 
-// Timer page
+// --- audio beep ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playBeep() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.frequency.value = 600;
+  gain.gain.value = 0.1;
+  osc.start();
+  setTimeout(() => osc.stop(), 200);
+}
+
+// --- overlay ---
+function showOverlay(isBreak) {
+  const ov = document.getElementById('congrats-overlay');
+  const h2 = ov.querySelector('h2');
+  const p  = ov.querySelector('p');
+  if (isBreak) {
+    h2.textContent = "Break’s Over!";
+    p.textContent  = "Time to focus 🍃";
+  } else {
+    h2.textContent = "Focus Complete!";
+    p.textContent  = "Enjoy your break 🌱";
+  }
+  ov.classList.add('show');
+  playBeep();
+  setTimeout(() => ov.classList.remove('show'), 2000);
+}
+
+// --- Timer page logic ---
 if (document.getElementById('start-btn')) {
-  const circle      = document.querySelector('.progress-ring__circle');
-  const radius      = circle.r.baseVal.value;
-  const circumference = 2 * Math.PI * radius;
-  circle.style.strokeDasharray  = `${circumference} ${circumference}`;
-  circle.style.strokeDashoffset = circumference;
+  const circle = document.querySelector('.progress-ring__circle');
+  const r      = circle.r.baseVal.value;
+  const C      = 2 * Math.PI * r;
+  circle.style.strokeDasharray  = `${C} ${C}`;
+  circle.style.strokeDashoffset = C;
 
-  let duration  = 25 * 60;
-  let remaining = duration;
-  let interval  = null;
+  let duration  = 25*60, remaining = duration, interval = null, isBreak = false;
 
-  const display    = document.getElementById('timer-display');
-  const slider     = document.getElementById('time-slider');
-  const timerValue = document.getElementById('timer-value');
-  const startBtn   = document.getElementById('start-btn');
-  const pauseBtn   = document.getElementById('pause-btn');
-  const resetBtn   = document.getElementById('reset-btn');
-  const overlay    = document.getElementById('congrats-overlay');
+  const disp     = document.getElementById('timer-display');
+  const slider   = document.getElementById('time-slider');
+  const tv       = document.getElementById('timer-value');
+  const startBtn = document.getElementById('start-btn');
+  const pauseBtn = document.getElementById('pause-btn');
+  const resetBtn = document.getElementById('reset-btn');
+  const breakSel = document.getElementById('break-selector');
+  const breakBtn = document.getElementById('break-btn');
 
-  function setProgress(time) {
-    const offset = circumference - (time / duration) * circumference;
-    circle.style.strokeDashoffset = offset;
+  function setProg(t) {
+    circle.style.strokeDashoffset = C - (t/duration)*C;
+  }
+  function updDisp(sec) {
+    const m = Math.floor(sec/60).toString().padStart(2,'0');
+    const s = (sec%60).toString().padStart(2,'0');
+    disp.textContent = `${m}:${s}`;
+  }
+  function recordFocus() {
+    const arr = JSON.parse(localStorage.getItem(FOCUS_KEY))||[];
+    arr.push({ timestamp: Date.now(), duration });
+    localStorage.setItem(FOCUS_KEY, JSON.stringify(arr));
   }
 
-  function updateDisplay(sec) {
-    const m = Math.floor(sec / 60).toString().padStart(2, '0');
-    const s = (sec % 60).toString().padStart(2, '0');
-    display.textContent = `${m}:${s}`;
-  }
+  function startTimer(breakMode=false) {
+    isBreak = breakMode;
+    document.body.classList.toggle('break', breakMode);
+    document.body.classList.toggle('running', !breakMode);
+    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el=>el.disabled=true);
 
-  // init slider & display
-  slider.value       = duration / 60;
-  timerValue.textContent = duration / 60;
-  updateDisplay(remaining);
-  setProgress(remaining);
-
-  slider.addEventListener('input', e => {
-    const mins = parseInt(e.target.value, 10);
-    duration  = mins * 60;
-    remaining = duration;
-    timerValue.textContent = mins;
-    updateDisplay(remaining);
-    setProgress(remaining);
-  });
-
-  startBtn.addEventListener('click', () => {
-    if (interval) return;
-    document.body.classList.add('running');
-    startBtn.disabled = true;
-    slider.disabled   = true;
-
-    interval = setInterval(() => {
+    interval = setInterval(()=>{
       remaining--;
-      if (remaining <= 0) {
+      updDisp(remaining);
+      setProg(remaining);
+
+      if (remaining<=0) {
         clearInterval(interval);
-        interval = null;
-        document.body.classList.remove('running');
-        startBtn.disabled = false;
-        slider.disabled   = false;
-
-        // save session
-        const sessions = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || [];
-        sessions.push({ timestamp: Date.now(), duration });
-        localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-
-        overlay.classList.add('show');
-        setTimeout(() => overlay.classList.remove('show'), 2000);
-
+        [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el=>el.disabled=false);
+        document.body.classList.remove('running','break');
+        if (!isBreak) recordFocus();
+        showOverlay(isBreak);
         remaining = duration;
+        updDisp(remaining);
+        setProg(remaining);
       }
-      updateDisplay(remaining);
-      setProgress(remaining);
-    }, 1000);
-  });
+    },1000);
+  }
 
-  pauseBtn.addEventListener('click', () => {
-    clearInterval(interval);
-    interval = null;
-    document.body.classList.remove('running');
-    startBtn.disabled = false;
-    slider.disabled   = false;
-  });
+  // init
+  slider.value   = duration/60;
+  tv.textContent = duration/60;
+  updDisp(remaining);
+  setProg(remaining);
 
-  resetBtn.addEventListener('click', () => {
-    clearInterval(interval);
-    interval = null;
-    document.body.classList.remove('running');
-    startBtn.disabled = false;
-    slider.disabled   = false;
+  slider.addEventListener('input', e=>{
+    duration  = parseInt(e.target.value,10)*60;
     remaining = duration;
-    updateDisplay(remaining);
-    setProgress(remaining);
+    tv.textContent = parseInt(e.target.value,10);
+    updDisp(remaining);
+    setProg(remaining);
+  });
+
+  startBtn.addEventListener('click', ()=>startTimer(false));
+  pauseBtn.addEventListener('click', ()=>{
+    clearInterval(interval);
+    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el=>el.disabled=false);
+    document.body.classList.remove('running','break');
+  });
+  resetBtn.addEventListener('click', ()=>{
+    clearInterval(interval);
+    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el=>el.disabled=false);
+    document.body.classList.remove('running','break');
+    remaining = duration;
+    updDisp(remaining);
+    setProg(remaining);
+  });
+  breakBtn.addEventListener('click', ()=>{
+    duration  = parseInt(breakSel.value,10)*60;
+    remaining = duration;
+    updDisp(remaining);
+    setProg(remaining);
+    startTimer(true);
   });
 }
 
-// Stats page
+// --- Stats page logic ---
 if (document.getElementById('today-total')) {
-  const sessions     = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || [];
-  const now          = new Date();
-  const startOfDay   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfWeek  = new Date(startOfDay);
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const arr = JSON.parse(localStorage.getItem(FOCUS_KEY))||[];
+  const now = new Date();
+  const sod = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const sow = new Date(sod); sow.setDate(sow.getDate()-sow.getDay());
+  const som = new Date(now.getFullYear(),now.getMonth(),1);
 
-  let todaySec = 0, weekSec = 0, monthSec = 0;
-  sessions.forEach(s => {
-    const t = new Date(s.timestamp);
-    if (t >= startOfDay)   todaySec += s.duration;
-    if (t >= startOfWeek)  weekSec  += s.duration;
-    if (t >= startOfMonth) monthSec += s.duration;
+  let d=0,w=0,m=0;
+  arr.forEach(s=>{
+    const t=new Date(s.timestamp);
+    if (t>=sod) d+=s.duration;
+    if (t>=sow) w+=s.duration;
+    if (t>=som) m+=s.duration;
   });
+  const toMin=sec=>Math.round(sec/60);
+  document.getElementById('today-total').textContent = toMin(d);
+  document.getElementById('week-total').textContent  = toMin(w);
+  document.getElementById('month-total').textContent = toMin(m);
 
-  document.getElementById('today-total').textContent = Math.round(todaySec / 60);
-  document.getElementById('week-total').textContent  = Math.round(weekSec  / 60);
-  document.getElementById('month-total').textContent = Math.round(monthSec / 60);
-
-  const container      = document.getElementById('tree-container');
-  container.innerHTML  = '';
-  sessions
-    .filter(s => new Date(s.timestamp) >= startOfWeek)
-    .forEach(() => {
-      const div = document.createElement('div');
-      div.className   = 'tree-icon';
-      div.textContent = '🌳';
-      container.appendChild(div);
-    });
+  const treeCt = document.getElementById('tree-container');
+  treeCt.innerHTML = '';
+  arr.filter(s=>new Date(s.timestamp)>=sow).forEach(_=>{
+    const div = document.createElement('div');
+    div.className   = 'tree-icon';
+    div.textContent = '🌳';
+    treeCt.appendChild(div);
+  });
 }
