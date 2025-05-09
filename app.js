@@ -6,7 +6,8 @@ function playBeep() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
   osc.frequency.value = 600;
   gain.gain.value = 0.1;
   osc.start();
@@ -38,7 +39,7 @@ if (document.getElementById('start-btn')) {
   circle.style.strokeDasharray  = `${C} ${C}`;
   circle.style.strokeDashoffset = C;
 
-  let duration  = 25*60,
+  let duration  = 25 * 60,
       remaining = duration,
       interval  = null,
       isBreak   = false;
@@ -53,24 +54,26 @@ if (document.getElementById('start-btn')) {
   const breakBtn = document.getElementById('break-btn');
 
   function setProg(t) {
-    circle.style.strokeDashoffset = C - (t/duration)*C;
+    circle.style.strokeDashoffset = C - (t / duration) * C;
   }
+
   function updDisp(sec) {
-    const m = Math.floor(sec/60).toString().padStart(2,'0');
-    const s = (sec%60).toString().padStart(2,'0');
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
     disp.textContent = `${m}:${s}`;
   }
+
   function recordFocus() {
-    const arr = JSON.parse(localStorage.getItem(FOCUS_KEY))||[];
+    const arr = JSON.parse(localStorage.getItem(FOCUS_KEY)) || [];
     arr.push({ timestamp: Date.now(), duration });
     localStorage.setItem(FOCUS_KEY, JSON.stringify(arr));
   }
 
-  function startTimer(breakMode=false) {
+  function startTimer(breakMode = false) {
     isBreak = breakMode;
     document.body.classList.toggle('break', breakMode);
     document.body.classList.toggle('running', !breakMode);
-    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el=>el.disabled=true);
+    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el => el.disabled = true);
 
     interval = setInterval(() => {
       remaining--;
@@ -79,8 +82,8 @@ if (document.getElementById('start-btn')) {
 
       if (remaining <= 0) {
         clearInterval(interval);
-        [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el=>el.disabled=false);
-        document.body.classList.remove('running','break');
+        [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el => el.disabled = false);
+        document.body.classList.remove('running', 'break');
         if (!isBreak) recordFocus();
         showOverlay(isBreak);
         remaining = duration;
@@ -91,34 +94,35 @@ if (document.getElementById('start-btn')) {
   }
 
   // init
-  slider.value   = duration/60;
-  tv.textContent = duration/60;
+  slider.value   = duration / 60;
+  tv.textContent = duration / 60;
   updDisp(remaining);
   setProg(remaining);
 
   slider.addEventListener('input', e => {
-    duration  = parseInt(e.target.value,10)*60;
+    duration  = parseInt(e.target.value, 10) * 60;
     remaining = duration;
-    tv.textContent = parseInt(e.target.value,10);
+    tv.textContent = parseInt(e.target.value, 10);
     updDisp(remaining);
     setProg(remaining);
   });
-  startBtn.addEventListener('click', ()=> startTimer(false));
-  pauseBtn.addEventListener('click', ()=>{
+
+  startBtn.addEventListener('click', () => startTimer(false));
+  pauseBtn.addEventListener('click', () => {
     clearInterval(interval);
-    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el=>el.disabled=false);
-    document.body.classList.remove('running','break');
+    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el => el.disabled = false);
+    document.body.classList.remove('running', 'break');
   });
-  resetBtn.addEventListener('click', ()=>{
+  resetBtn.addEventListener('click', () => {
     clearInterval(interval);
-    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el=>el.disabled=false);
-    document.body.classList.remove('running','break');
+    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el => el.disabled = false);
+    document.body.classList.remove('running', 'break');
     remaining = duration;
     updDisp(remaining);
     setProg(remaining);
   });
-  breakBtn.addEventListener('click', ()=>{
-    duration  = parseInt(breakSel.value,10)*60;
+  breakBtn.addEventListener('click', () => {
+    duration  = parseInt(breakSel.value, 10) * 60;
     remaining = duration;
     updDisp(remaining);
     setProg(remaining);
@@ -134,21 +138,22 @@ if (document.getElementById('today-total')) {
   const sow = new Date(sod); sow.setDate(sow.getDate() - sow.getDay());
   const som = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  let d=0, w=0, m=0;
+  let d = 0, w = 0, m = 0;
   arr.forEach(s => {
     const t = new Date(s.timestamp);
     if (t >= sod) d += s.duration;
     if (t >= sow) w += s.duration;
     if (t >= som) m += s.duration;
   });
-  const toMin = sec => Math.round(sec/60);
+
+  const toMin = sec => Math.round(sec / 60);
   document.getElementById('today-total').textContent = toMin(d);
   document.getElementById('week-total').textContent  = toMin(w);
   document.getElementById('month-total').textContent = toMin(m);
 
   const treeCt = document.getElementById('tree-container');
   treeCt.innerHTML = '';
-  arr.filter(s => new Date(s.timestamp) >= sow).forEach(_ => {
+  arr.filter(s => new Date(s.timestamp) >= sow).forEach(() => {
     const div = document.createElement('div');
     div.className   = 'tree-icon';
     div.textContent = '🌳';
@@ -156,9 +161,9 @@ if (document.getElementById('today-total')) {
   });
 }
 
-// --- To-Do List logic ---
+// --- To-Do List logic with swipe actions ---
 if (document.getElementById('todo-form')) {
-  const TODO_KEY = 'todo_tasks';
+  const TODO_KEY  = 'todo_tasks';
   const form      = document.getElementById('todo-form');
   const inputDesc = document.getElementById('todo-input');
   const selectImp = document.getElementById('importance-select');
@@ -180,6 +185,10 @@ if (document.getElementById('todo-form')) {
       li.className = 'task-item';
       if (task.done) li.classList.add('done');
 
+      // swipeable wrapper
+      const content = document.createElement('div');
+      content.className = 'swipe-content';
+
       // 1) checkbox
       const cb = document.createElement('input');
       cb.type = 'checkbox';
@@ -189,59 +198,74 @@ if (document.getElementById('todo-form')) {
         saveTasks();
         li.classList.toggle('done', task.done);
       });
-      li.appendChild(cb);
+      content.appendChild(cb);
 
       // 2) description
       const desc = document.createElement('span');
       desc.className = 'task-desc';
       desc.textContent = task.desc;
-      li.appendChild(desc);
+      content.appendChild(desc);
 
-      // 3) icons + due
+      // 3) icons + due date below
       const icons = document.createElement('div');
       icons.className = 'task-icons';
+      const iconsRow = document.createElement('div');
+      iconsRow.className = 'icons-row';
       const impIcon = document.createElement('span');
       impIcon.className = 'imp-icon';
       impIcon.textContent = task.importance === 'high' ? '⭐' : '☆';
-      icons.appendChild(impIcon);
       const urgIcon = document.createElement('span');
       urgIcon.className = 'urg-icon';
       urgIcon.textContent = task.urgency === 'high' ? '⚠️' : '⏰';
-      icons.appendChild(urgIcon);
+      iconsRow.append(impIcon, urgIcon);
+      icons.appendChild(iconsRow);
       const due = document.createElement('span');
       due.className = 'due-text';
       due.textContent = task.dueDate;
       icons.appendChild(due);
-      li.appendChild(icons);
+      content.appendChild(icons);
 
-      // 4) edit btn
-      const editBtn = document.createElement('button');
-      editBtn.className = 'edit-btn';
-      editBtn.setAttribute('aria-label', 'Edit task');
-      editBtn.textContent = '✏️';
-      editBtn.addEventListener('click', () => {
-        inputDesc.value = task.desc;
-        selectImp.value = task.importance;
-        selectUrg.value = task.urgency;
-        inputDate.value = task.dueDate;
-        editIndex = i;
-        form.querySelector('button[type="submit"]').textContent = 'Save';
-      });
-      li.appendChild(editBtn);
-
-      // 5) delete btn
-      const delBtn = document.createElement('button');
-      delBtn.className = 'delete-btn';
-      delBtn.setAttribute('aria-label', 'Delete task');
-      delBtn.textContent = '🗑️';
-      delBtn.addEventListener('click', () => {
-        tasks.splice(i, 1);
-        saveTasks();
-        renderTasks();
-      });
-      li.appendChild(delBtn);
-
+      li.appendChild(content);
       listEl.appendChild(li);
+
+      // swipe gesture handling
+      let startX = 0;
+      content.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+      });
+      content.addEventListener('touchmove', e => {
+        const dx = e.touches[0].clientX - startX;
+        content.style.transform = `translateX(${dx}px)`;
+        li.classList.toggle('show-edit', dx > 0);
+        li.classList.toggle('show-delete', dx < 0);
+        e.preventDefault();
+      }, { passive: false });
+      content.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - startX;
+        content.style.transition = 'transform 0.2s';
+        if (dx > 100) {
+          // swipe right → edit
+          content.style.transform = 'translateX(0)';
+          li.classList.remove('show-edit');
+          inputDesc.value = task.desc;
+          selectImp.value = task.importance;
+          selectUrg.value = task.urgency;
+          inputDate.value = task.dueDate;
+          editIndex = i;
+          form.querySelector('button[type="submit"]').textContent = 'Save';
+          window.scrollTo({ top: form.offsetTop - 20, behavior: 'smooth' });
+        } else if (dx < -100) {
+          // swipe left → delete
+          tasks.splice(i, 1);
+          saveTasks();
+          renderTasks();
+          return;
+        } else {
+          content.style.transform = 'translateX(0)';
+          li.classList.remove('show-edit', 'show-delete');
+        }
+        setTimeout(() => { content.style.transition = ''; }, 200);
+      });
     });
   }
 

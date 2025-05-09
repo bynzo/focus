@@ -1,7 +1,6 @@
-// give it a new version so that the updated todo.js / styles.css get re-cached
-const CACHE_NAME = 'focus-tree-v4';
+const CACHE_NAME = 'focus-tree-v5';
 const ASSETS = [
-  '/',               // our app shell
+  '/',               // app shell
   '/index.html',
   '/stats.html',
   '/styles.css',
@@ -12,7 +11,6 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', evt => {
-  // pre-cache all app shell assets
   evt.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(ASSETS))
@@ -21,7 +19,6 @@ self.addEventListener('install', evt => {
 });
 
 self.addEventListener('activate', evt => {
-  // clean up old caches
   evt.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
@@ -34,12 +31,11 @@ self.addEventListener('activate', evt => {
 });
 
 self.addEventListener('fetch', evt => {
-  // navigation requests: try network first, fallback to cache
+  // Network-first for navigation, fallback to cache
   if (evt.request.mode === 'navigate') {
     evt.respondWith(
       fetch(evt.request)
         .then(res => {
-          // update cache in background
           const copy = res.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(evt.request, copy));
           return res;
@@ -49,7 +45,7 @@ self.addEventListener('fetch', evt => {
     return;
   }
 
-  // static asset requests: cache-first
+  // Cache-first for everything else
   evt.respondWith(
     caches.match(evt.request)
       .then(cached => cached || fetch(evt.request))
