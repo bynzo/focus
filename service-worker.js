@@ -1,4 +1,4 @@
-const CACHE_NAME = 'focus-tree-v5';
+const CACHE_NAME = 'focus-tree-v6';
 const ASSETS = [
   '/',               // app shell
   '/index.html',

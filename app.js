@@ -1,3 +1,18 @@
+// app.js
+
+// --- Force full page reload on nav clicks so styles.css is re-applied ---
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', e => {
+      const href = link.getAttribute('href');
+      if (href && href.endsWith('.html') && !link.classList.contains('active')) {
+        e.preventDefault();
+        window.location.href = href;
+      }
+    });
+  });
+});
+
 const FOCUS_KEY = 'focus_sessions';
 
 // --- audio beep ---
@@ -31,6 +46,25 @@ function showOverlay(isBreak) {
   setTimeout(() => ov.classList.remove('show'), 2000);
 }
 
+// --- Wake Lock helpers ---
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => console.log('Wake Lock released'));
+      console.log('Wake Lock acquired');
+    }
+  } catch (err) {
+    console.warn('Wake Lock error:', err);
+  }
+}
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().then(() => { wakeLock = null; });
+  }
+}
+
 // --- Timer page logic ---
 if (document.getElementById('start-btn')) {
   const circle = document.querySelector('.progress-ring__circle');
@@ -39,7 +73,7 @@ if (document.getElementById('start-btn')) {
   circle.style.strokeDasharray  = `${C} ${C}`;
   circle.style.strokeDashoffset = C;
 
-  let duration  = 25 * 60,
+  let duration  = 25 * 60,   // seconds
       remaining = duration,
       interval  = null,
       isBreak   = false;
@@ -73,19 +107,37 @@ if (document.getElementById('start-btn')) {
     isBreak = breakMode;
     document.body.classList.toggle('break', breakMode);
     document.body.classList.toggle('running', !breakMode);
-    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el => el.disabled = true);
+
+    // Disable start/slider/break; enable pause/reset
+    startBtn.disabled = true;
+    slider.disabled   = true;
+    breakBtn.disabled = true;
+    pauseBtn.disabled = false;
+    resetBtn.disabled = false;
+
+    // calculate end time
+    const endTime = Date.now() + remaining * 1000;
+    requestWakeLock();
 
     interval = setInterval(() => {
-      remaining--;
+      remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
       updDisp(remaining);
       setProg(remaining);
 
       if (remaining <= 0) {
         clearInterval(interval);
-        [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el => el.disabled = false);
+        releaseWakeLock();
+        // reset UI
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        resetBtn.disabled = true;
+        slider.disabled   = false;
+        breakBtn.disabled = false;
         document.body.classList.remove('running', 'break');
         if (!isBreak) recordFocus();
         showOverlay(isBreak);
+        // reset counters
+        duration  = parseInt(slider.value, 10) * 60;
         remaining = duration;
         updDisp(remaining);
         setProg(remaining);
@@ -93,11 +145,14 @@ if (document.getElementById('start-btn')) {
     }, 1000);
   }
 
-  // init
+  // initialize
   slider.value   = duration / 60;
   tv.textContent = duration / 60;
   updDisp(remaining);
   setProg(remaining);
+
+  pauseBtn.disabled = true;
+  resetBtn.disabled = true;
 
   slider.addEventListener('input', e => {
     duration  = parseInt(e.target.value, 10) * 60;
@@ -110,16 +165,28 @@ if (document.getElementById('start-btn')) {
   startBtn.addEventListener('click', () => startTimer(false));
   pauseBtn.addEventListener('click', () => {
     clearInterval(interval);
-    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el => el.disabled = false);
+    releaseWakeLock();
+    // re-enable start/slider/break; keep reset enabled
+    startBtn.disabled = false;
+    slider.disabled   = false;
+    breakBtn.disabled = false;
+    pauseBtn.disabled = true;
+    resetBtn.disabled = false;
     document.body.classList.remove('running', 'break');
   });
   resetBtn.addEventListener('click', () => {
     clearInterval(interval);
-    [startBtn, pauseBtn, resetBtn, slider, breakBtn].forEach(el => el.disabled = false);
-    document.body.classList.remove('running', 'break');
+    releaseWakeLock();
+    // restore initial UI
     remaining = duration;
     updDisp(remaining);
     setProg(remaining);
+    startBtn.disabled = false;
+    slider.disabled   = false;
+    breakBtn.disabled = false;
+    pauseBtn.disabled = true;
+    resetBtn.disabled = true;
+    document.body.classList.remove('running', 'break');
   });
   breakBtn.addEventListener('click', () => {
     duration  = parseInt(breakSel.value, 10) * 60;
@@ -135,7 +202,7 @@ if (document.getElementById('today-total')) {
   const arr = JSON.parse(localStorage.getItem(FOCUS_KEY)) || [];
   const now = new Date();
   const sod = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const sow = new Date(sod); sow.setDate(sow.getDate() - sow.getDay());
+  const sow = new Date(sod); sow.setDate(sow.getDate() - sod.getDay());
   const som = new Date(now.getFullYear(), now.getMonth(), 1);
 
   let d = 0, w = 0, m = 0;
@@ -185,13 +252,13 @@ if (document.getElementById('todo-form')) {
       li.className = 'task-item';
       if (task.done) li.classList.add('done');
 
-      // swipeable wrapper
+      // swipe wrapper
       const content = document.createElement('div');
       content.className = 'swipe-content';
 
-      // 1) checkbox
+      // checkbox
       const cb = document.createElement('input');
-      cb.type = 'checkbox';
+      cb.type    = 'checkbox';
       cb.checked = task.done;
       cb.addEventListener('change', () => {
         task.done = cb.checked;
@@ -200,27 +267,27 @@ if (document.getElementById('todo-form')) {
       });
       content.appendChild(cb);
 
-      // 2) description
+      // description
       const desc = document.createElement('span');
-      desc.className = 'task-desc';
+      desc.className   = 'task-desc';
       desc.textContent = task.desc;
       content.appendChild(desc);
 
-      // 3) icons + due date below
-      const icons = document.createElement('div');
+      // importance & urgency icons + due date
+      const icons    = document.createElement('div');
       icons.className = 'task-icons';
       const iconsRow = document.createElement('div');
       iconsRow.className = 'icons-row';
       const impIcon = document.createElement('span');
-      impIcon.className = 'imp-icon';
+      impIcon.className   = 'imp-icon';
       impIcon.textContent = task.importance === 'high' ? '⭐' : '☆';
       const urgIcon = document.createElement('span');
-      urgIcon.className = 'urg-icon';
+      urgIcon.className   = 'urg-icon';
       urgIcon.textContent = task.urgency === 'high' ? '⚠️' : '⏰';
       iconsRow.append(impIcon, urgIcon);
       icons.appendChild(iconsRow);
       const due = document.createElement('span');
-      due.className = 'due-text';
+      due.className   = 'due-text';
       due.textContent = task.dueDate;
       icons.appendChild(due);
       content.appendChild(icons);
@@ -228,7 +295,7 @@ if (document.getElementById('todo-form')) {
       li.appendChild(content);
       listEl.appendChild(li);
 
-      // swipe gesture handling
+      // swipe gestures
       let startX = 0;
       content.addEventListener('touchstart', e => {
         startX = e.touches[0].clientX;
@@ -244,7 +311,6 @@ if (document.getElementById('todo-form')) {
         const dx = e.changedTouches[0].clientX - startX;
         content.style.transition = 'transform 0.2s';
         if (dx > 100) {
-          // swipe right → edit
           content.style.transform = 'translateX(0)';
           li.classList.remove('show-edit');
           inputDesc.value = task.desc;
@@ -255,7 +321,6 @@ if (document.getElementById('todo-form')) {
           form.querySelector('button[type="submit"]').textContent = 'Save';
           window.scrollTo({ top: form.offsetTop - 20, behavior: 'smooth' });
         } else if (dx < -100) {
-          // swipe left → delete
           tasks.splice(i, 1);
           saveTasks();
           renderTasks();
